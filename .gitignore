@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.cjs
+
+# Local files
+local_files/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Next.js build outputs
+.next/
+out/
+
+# Other build artifacts
+build/
+dist/
+*.tsbuildinfo
+
+# Environment (keep examples)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
+
+# Vercel
+.vercel/
+
+# Coverage
+coverage/
+*.lcov
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Caches
+.turbo/
+.cache/

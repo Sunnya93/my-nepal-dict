@@ -1,0 +1,75 @@
+:root {
+  --brand-bg-start: #f6f8ff;
+  --brand-bg-end: #eef6ff;
+  --brand-primary: #3b82f6;
+  --brand-primary-600: #2563eb;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 14px 40px rgba(0, 0, 0, 0.10);
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px 800px at 0% 0%, var(--brand-bg-start), transparent),
+              radial-gradient(1200px 800px at 100% 0%, var(--brand-bg-end), transparent),
+              linear-gradient(180deg, #ffffff, #f7f9fc 60%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: saturate(150%) blur(10px);
+  -webkit-backdrop-filter: saturate(150%) blur(10px);
+}
+
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: var(--shadow-soft);
+}
+
+.hover-lift {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.search-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16px;
+  z-index: 1030;
+}
+.search-dock-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.display-nepali {
+  font-size: clamp(28px, 6vw, 48px);
+  font-weight: 700;
+}
+
+.muted-small {
+  color: #6b7280;
+  font-size: 0.925rem;
+}
+
+.badge-soft {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--brand-primary-600);
+  border: 1px solid rgba(59, 130, 246, 0.20);
+}
+
+
