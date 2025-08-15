@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Container, Row, Col, Form, Button, Alert, Table, ProgressBar, Card } from 'react-bootstrap';
-import { createWord } from '@/lib/words';
+import { addWordEntriesToDocument } from '@/lib/words';
 import AdminGuard from '@/components/AdminGuard';
 
 type ParsedRow = {
@@ -104,18 +104,17 @@ export default function ExcelUploadPage() {
     setUploadedCount(0);
     setError('');
     try {
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        await createWord({
-          Nepali: row.Nepali || '',
-          Korean: row.Korean || '',
-          English: row.English || '',
-          Sound: row.Sound || '',
-          Example: row.Example || '',
-          DeleteFlag: row.DeleteFlag || 'N',
-        } as any);
-        setUploadedCount(i + 1);
-      }
+      const wordEntries = rows.map(row => ({
+        Nepali: row.Nepali || '',
+        Korean: row.Korean || '',
+        English: row.English || '',
+        Sound: row.Sound || '',
+        Example: row.Example || '',
+        DeleteFlag: row.DeleteFlag || 'N',
+      }));
+      
+      await addWordEntriesToDocument('sunnya-world',wordEntries);
+      setUploadedCount(rows.length);
     } catch (e: any) {
       setError(e?.message || '업로드 중 오류가 발생했습니다.');
     } finally {

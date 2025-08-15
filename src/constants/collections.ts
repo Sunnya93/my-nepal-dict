@@ -1,6 +1,6 @@
 export const COLLECTIONS = {
-  WORDS: 'Words',
-  USERS: 'Users',
+  WORDS: 'DictWords',
+  USERS: 'DictUsers',
 } as const;
 
 

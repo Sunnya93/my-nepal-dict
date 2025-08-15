@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 
 // Firebase initialization using environment variables from .env.local
 // NEXT_PUBLIC_ prefix ensures availability on the client in Next.js

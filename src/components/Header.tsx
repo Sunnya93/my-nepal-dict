@@ -2,12 +2,28 @@
 
 import { Navbar, Container, Nav, Button, Dropdown } from 'react-bootstrap';
 import { useAuth } from '@/contexts/AuthContext';
+import { refreshCache } from '@/lib/api';
 
 export default function Header() {
   const { isAuthenticated, user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleClearCache = async () => {
+    try {
+      // 서버 캐시 삭제 (관리자인 경우)
+      if (isAuthenticated) {
+        await refreshCache(process.env.NEXT_PUBLIC_ADMIN_API_KEY || '');
+        console.log('🔄 서버 캐시가 갱신되었습니다.');
+      }
+      
+      window.location.reload();
+    } catch (error) {
+      console.error('캐시 갱신 실패:', error);
+      window.location.reload(); // 실패해도 새로고침
+    }
   };
 
   return (
@@ -19,7 +35,7 @@ export default function Header() {
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="ms-auto">
+            <Nav className="ms-auto d-flex align-items-center gap-2">
               {isAuthenticated ? (
                 <Dropdown align="end">
                   <Dropdown.Toggle variant="outline-primary" className="rounded-pill">
