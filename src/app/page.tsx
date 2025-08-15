@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Container, Row, Col, Form, ListGroup, Button, Card } from 'react-bootstrap';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { COLLECTIONS } from '@/constants/collections';
+import Header from '@/components/Header';
 import type { Word } from '@/types/word';
-
 
 export default function HomePage() {
 
@@ -44,7 +44,9 @@ export default function HomePage() {
   }, [search, words]);
 
   return (
-    <Container fluid className="pt-3 pb-5">
+    <>
+      <Header />
+      <Container fluid className="pt-3 pb-5">
       <div className="text-end text-muted">
         <p><a href="/admin">관리자</a></p>
       </div>
@@ -99,7 +101,7 @@ export default function HomePage() {
         </div>
       </div>  
     </Container>
-
+    </>
   );
 }
 
