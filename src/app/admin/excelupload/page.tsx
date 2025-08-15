@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Container, Row, Col, Form, Button, Alert, Table, ProgressBar, Card } from 'react-bootstrap';
 import { createWord } from '@/lib/words';
+import AdminGuard from '@/components/AdminGuard';
 
 type ParsedRow = {
   Nepali: string;
@@ -123,12 +124,13 @@ export default function ExcelUploadPage() {
   };
 
   return (
-    <Container className="py-4">
-      <Row>
-        <Col md={10} lg={8}>
-          <Card className="glass-card border-0 rounded-4">
-            <Card.Body className="p-4">
-              <h4 className="mb-3">엑셀 업로드 (관리자)</h4>
+    <AdminGuard>
+      <Container className="py-4">
+        <Row className="justify-content-center">
+          <Col md={10} lg={8}>
+            <Card className="glass-card border-0 rounded-4">
+              <Card.Body className="p-4">
+                <h4 className="mb-3">엑셀 업로드 (관리자)</h4>
               {error && <Alert variant="danger">{error}</Alert>}
               <Form className="mb-3" onSubmit={(e) => e.preventDefault()}>
                 <Form.Group>
@@ -193,11 +195,12 @@ export default function ExcelUploadPage() {
                   </Table>
                 </>
               )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    </AdminGuard>
   );
 }
 
