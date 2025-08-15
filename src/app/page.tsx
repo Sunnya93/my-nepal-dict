@@ -47,25 +47,8 @@ export default function HomePage() {
     <>
       <Header />
       <Container fluid className="pt-3 pb-5">
-      <div className="text-end text-muted">
-        <p><a href="/admin">관리자</a></p>
-      </div>
       <Row className="justify-content-center">
         <Col lg={8}>
-          <Card className="glass-card border-0 rounded-4 mb-3 hover-lift">
-            <Card.Body className="p-4">
-              <div className="d-flex align-items-center justify-content-between">
-                <div>
-                  <div className="display-nepali">네팔어 단어장</div>
-                  <div className="muted-small">단어를 검색해보세요.</div>
-                </div>
-                <div className="d-none d-md-block">
-                  <span className="badge badge-soft px-3 py-2 rounded-pill">실시간 검색</span>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-
           <Card className="glass-card border-0 rounded-4">
             <ListGroup variant="flush">
               {filtered.slice(0, 50).map((w) => (

@@ -23,7 +23,7 @@ export default function Header() {
               {isAuthenticated ? (
                 <Dropdown align="end">
                   <Dropdown.Toggle variant="outline-primary" className="rounded-pill">
-                    관리자 ({user?.UserName || user?.UserId})
+                    {user?.UserName} 님
                   </Dropdown.Toggle>
                   <Dropdown.Menu>
                     <Dropdown.Item href="/admin">관리자 홈</Dropdown.Item>
