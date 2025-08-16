@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import type { User } from '@/types/user';
+import { COLLECTIONS } from '@/constants/collections';
 
 interface AuthContextType {
   user: User | null;
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       
       // Firestore Users 컬렉션에서 사용자 확인
-      const usersRef = collection(db, 'Users');
+      const usersRef = collection(db, COLLECTIONS.USERS);
       const q = query(usersRef, where('UserId', '==', userId));
       const querySnapshot = await getDocs(q);
       

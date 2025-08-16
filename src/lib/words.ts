@@ -19,51 +19,94 @@ export async function getWord(id: string): Promise<Word | null> {
   return { id: snap.id, ...(snap.data() as any) };
 }
 
+// ============================================================================
+// Sharding helpers
+// ============================================================================
+const MAX_WORDS_PER_DOC = 4000;
+
+function isShardId(baseId: string, candidateId: string): boolean {
+  if (candidateId === baseId) return true;
+  return candidateId.startsWith(baseId + '_');
+}
+
+function extractShardIndex(baseId: string, candidateId: string): number {
+  if (candidateId === baseId) return 0;
+  const suffix = candidateId.substring((baseId + '_').length);
+  const n = parseInt(suffix, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function findLatestShard(baseId: string): Promise<{ id: string; words: WordEntry[] } | null> {
+  const coll = collection(db, COLLECTIONS.WORDS);
+  const snap = await getDocs(coll);
+  const candidates = snap.docs
+    .filter(d => isShardId(baseId, d.id))
+    .map(d => ({ id: d.id, words: ((d.data() as any).words || []) as WordEntry[] }));
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => extractShardIndex(baseId, a.id) - extractShardIndex(baseId, b.id));
+  return candidates[candidates.length - 1];
+}
+
+async function createNewShard(baseId: string, shardIndex: number, words: WordEntry[]) {
+  const shardId = shardIndex === 0 ? baseId : `${baseId}_${shardIndex}`;
+  const shardRef = doc(db, COLLECTIONS.WORDS, shardId);
+  await setDoc(shardRef, {
+    words,
+    CreatedDate: serverTimestamp(),
+    UpdateDate: serverTimestamp(),
+  });
+  return shardId;
+}
+
+async function getNextShardIndex(baseId: string): Promise<number> {
+  const coll = collection(db, COLLECTIONS.WORDS);
+  const snap = await getDocs(coll);
+  const indices = snap.docs
+    .filter(d => isShardId(baseId, d.id))
+    .map(d => extractShardIndex(baseId, d.id));
+  if (indices.length === 0) return 0;
+  return Math.max(...indices) + 1;
+}
+
 // Firebase: writes a new WordEntry into the top Word document
 export async function createWordEntry(payload: Omit<WordEntry, 'id' | 'CreatedDate' | 'UpdateDate'>): Promise<string> {
-  // Check if top Word document exists (limit to 1)
-  const coll = collection(db, COLLECTIONS.WORDS);
-  const q = query(coll, orderBy('CreatedDate'), limit(1));
-  const snap = await getDocs(q);
-  
-  let wordDoc: Word;
-  let docRef;
-  
-  if (snap.empty) {
-    // Create the top document if it doesn't exist (only 1 document allowed)
-    docRef = await addDoc(coll, {
-      words: [],
-      CreatedDate: serverTimestamp(),
-      UpdateDate: serverTimestamp()
-    });
-    wordDoc = { id: docRef.id, words: [] };
-    console.log('📄 새 최상위 문서가 생성되었습니다: ' + docRef.id);
+  // Resolve latest shard for base id 'Word'
+  const baseId = 'Word';
+  const latest = await findLatestShard(baseId);
+
+  let targetDocId: string;
+  let existingWords: WordEntry[] = [];
+  if (!latest) {
+    targetDocId = await createNewShard(baseId, 0, []);
   } else {
-    // Use the existing top document
-    docRef = doc(db, COLLECTIONS.WORDS, snap.docs[0].id);
-    wordDoc = { id: snap.docs[0].id, ...(snap.docs[0].data() as any) };
+    targetDocId = latest.id;
+    existingWords = latest.words || [];
   }
-  
-  // Add new word entry to the words array of the top document
+
+  // Add new word entry to the target shard
   const newWordEntry: WordEntry = {
     id: generateEntryId(),
     ...payload,
-    CreatedDate: serverTimestamp(),
-    UpdateDate: serverTimestamp()
+    CreatedDate: new Date(),
+    UpdateDate: new Date()
   };
   
-  const updatedWords = [...(wordDoc.words || []), newWordEntry];
-  
-  // Firebase: update the words array on the single top-level document
-  await updateDoc(docRef, {
-    words: updatedWords,
-    UpdateDate: serverTimestamp()
-  });
+  // If target shard is full, create a new shard
+  if (existingWords.length >= MAX_WORDS_PER_DOC) {
+    const nextIndex = await getNextShardIndex(baseId);
+    targetDocId = await createNewShard(baseId, nextIndex, [newWordEntry]);
+  } else {
+    const ref = doc(db, COLLECTIONS.WORDS, targetDocId);
+    await updateDoc(ref, {
+      words: [...existingWords, newWordEntry],
+      UpdateDate: serverTimestamp()
+    });
+  }
   
   // Add to server cache
-  const cacheEntry = { ...newWordEntry, docId: wordDoc.id };
+  const cacheEntry = { ...newWordEntry, docId: targetDocId };
   await updateCacheWord('add', cacheEntry);
-  console.log('➕ 새 단어 항목이 최상위 문서의 WordEntry 배열에 추가되었습니다: ' + payload.Nepali);
+  console.log('➕ 새 단어 항목이 샤드 문서에 추가되었습니다: ' + payload.Nepali);
   
   // return the newly created entry id for routing
   return newWordEntry.id as string;
@@ -88,7 +131,7 @@ export async function updateWordEntry(docId: string, wordIndex: number, payload:
   words[wordIndex] = {
     ...words[wordIndex],
     ...payload,
-    UpdateDate: serverTimestamp()
+    UpdateDate: new Date()
   };
   
   await updateDoc(ref, {
@@ -98,7 +141,7 @@ export async function updateWordEntry(docId: string, wordIndex: number, payload:
   
   // Update server cache
   const updatedEntry = { ...words[wordIndex], docId };
-  await updateCacheWord('update', updatedEntry, docId);
+  await updateCacheWord('update', updatedEntry, updatedEntry.id as string);
   console.log('✏️ 단어 항목이 서버 캐시에서 업데이트되었습니다: ' + payload.Nepali);
 }
 
@@ -121,7 +164,7 @@ export async function softDeleteWordEntry(docId: string, wordIndex: number) {
   words[wordIndex] = {
     ...words[wordIndex],
     DeleteFlag: 'Y',
-    UpdateDate: serverTimestamp()
+    UpdateDate: new Date()
   };
   
   await updateDoc(ref, {
@@ -131,7 +174,7 @@ export async function softDeleteWordEntry(docId: string, wordIndex: number) {
   
   // Update server cache (will be removed from cache due to DeleteFlag)
   const deletedEntry = { ...words[wordIndex], docId };
-  await updateCacheWord('update', deletedEntry, docId);
+  await updateCacheWord('update', deletedEntry, deletedEntry.id as string);
   console.log('🗑️ 단어 항목이 삭제 표시되었습니다: ' + words[wordIndex].Nepali);
 }
 
@@ -153,8 +196,8 @@ export async function createWordEntriesBulk(wordEntries: Omit<WordEntry, 'Create
         id: entry.id || generateEntryId(),
         ...entry,
         DeleteFlag: entry.DeleteFlag || 'N',
-        CreatedDate: serverTimestamp(),
-        UpdateDate: serverTimestamp()
+        CreatedDate: new Date(),
+        UpdateDate: new Date()
       }))
     };
 
@@ -193,43 +236,56 @@ export async function addWordEntriesToDocument(docId: string, newWordEntries: Om
       throw new Error('추가할 WordEntry 배열이 비어있습니다.');
     }
 
-    // 기존 문서 가져오기
-    const wordDoc = await getWord(docId);
-    if (!wordDoc) {
-      throw new Error('문서를 찾을 수 없습니다: ' + docId);
-    }
-
-    // 기존 단어들과 새 단어들 합치기
-    const existingWords = wordDoc.words || [];
+    // Prepare entries with timestamps and defaults
     const processedNewEntries = newWordEntries.map(entry => ({
       id: entry.id || generateEntryId(),
       ...entry,
       DeleteFlag: entry.DeleteFlag || 'N',
-      CreatedDate: serverTimestamp(),
-      UpdateDate: serverTimestamp()
+      CreatedDate: new Date(),
+      UpdateDate: new Date()
     }));
-
-    const combinedWords = [...existingWords, ...processedNewEntries];
-
-    // Firebase 문서 업데이트
-    const docRef = doc(db, COLLECTIONS.WORDS, docId);
-    await updateDoc(docRef, {
-      words: combinedWords,
-      UpdateDate: serverTimestamp()
-    });
-
-    // 서버 캐시에 새 단어들만 추가
-    for (const entry of processedNewEntries) {
-      const cacheEntry = { 
-        ...entry, 
-        docId: docId,
-        CreatedDate: serverTimestamp(),
-        UpdateDate: serverTimestamp()
-      };
-      await updateCacheWord('add', cacheEntry);
+    
+    // Sharding: find latest shard for base docId
+    const latest = await findLatestShard(docId);
+    let targetDocId = docId;
+    let existingWords: WordEntry[] = [];
+    if (!latest) {
+      // No shard exists yet: create base shard
+      targetDocId = await createNewShard(docId, 0, []);
+    } else {
+      targetDocId = latest.id;
+      existingWords = latest.words || [];
     }
 
-    console.log(`➕ ${newWordEntries.length}개의 단어 항목이 문서 ${docId}에 추가되었습니다.`);
+    let remaining = [...processedNewEntries];
+    let currentDocId = targetDocId;
+    let currentWords = existingWords;
+
+    while (remaining.length > 0) {
+      const capacity = Math.max(0, MAX_WORDS_PER_DOC - (currentWords?.length || 0));
+      if (capacity === 0) {
+        const nextIndex = await getNextShardIndex(docId);
+        currentDocId = await createNewShard(docId, nextIndex, []);
+        currentWords = [];
+      }
+
+      const chunk = remaining.splice(0, Math.min(capacity || MAX_WORDS_PER_DOC, remaining.length));
+      const ref = doc(db, COLLECTIONS.WORDS, currentDocId);
+      await updateDoc(ref, {
+        words: [...(currentWords || []), ...chunk],
+        UpdateDate: serverTimestamp(),
+      });
+      
+      // cache for this chunk
+      for (const entry of chunk) {
+        const cacheEntry = { ...entry, docId: currentDocId };
+        await updateCacheWord('add', cacheEntry);
+      }
+
+      currentWords = [...(currentWords || []), ...chunk];
+    }
+
+    console.log(`➕ ${newWordEntries.length}개의 단어 항목이 샤드 문서들에 추가되었습니다 (base: ${docId}).`);
     
     return true;
   } catch (error) {

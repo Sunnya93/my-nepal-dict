@@ -5,6 +5,7 @@ import { Container, Row, Col, Form, ListGroup, Button, Card } from 'react-bootst
 import { fetchWords } from '@/lib/api';
 import Header from '@/components/Header';
 import type { WordEntry } from '@/types/word';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
 
@@ -12,6 +13,7 @@ export default function HomePage() {
   const [wordEntries, setWordEntries] = useState<WordEntry[]>([]);
   const [envMessage, setEnvMessage] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // 클라이언트 사이드에서만 실행
@@ -71,10 +73,13 @@ export default function HomePage() {
                     <div className="text-muted">{w.Sound}</div>
                     <div className="text-muted">{w.Korean}</div>
                     {w.English && <div className="text-muted small">{w.English}</div>}
+                    {w.Example && <div className="text-muted small">{w.Example}</div>}
                   </div>
-                  <Button variant="outline-primary" href={`/words/${w.id}`} className="rounded-pill px-3">
-                    상세
-                  </Button>
+                  {/* 비용 문제로 인하여 상세 페이지는 관리자만 제공 */}
+                  {(isAuthenticated &&
+                    <Button variant="outline-primary" href={`/words/${w.id}`} className="rounded-pill px-3">
+                      상세
+                    </Button>)}
                 </ListGroup.Item>
               ))}
               {filtered.length === 0 && wordEntries.length > 0 && (

@@ -106,17 +106,17 @@ export async function updateWordEntryById(
     updatedWords[wordIndex] = {
       ...updatedWords[wordIndex],
       ...updates,
-      UpdateDate: serverTimestamp()
+      UpdateDate: new Date()
     };
     
     await updateDoc(docRef, {
       words: updatedWords,
-      UpdateDate: serverTimestamp()
+      UpdateDate: new Date()
     });
     
     // 4. 서버 캐시 업데이트
     const updatedEntry = { ...updatedWords[wordIndex], docId: foundWord.docId };
-    await updateCacheWord('update', updatedEntry, foundWord.docId);
+    await updateCacheWord('update', updatedEntry, updatedEntry.id as string);
     
     console.log('✏️ 단어 업데이트 완료:', id);
     return true;
@@ -132,7 +132,7 @@ export async function deleteWordEntryById(id: string): Promise<boolean> {
   try {
     return await updateWordEntryById(id, { 
       DeleteFlag: 'Y',
-      UpdateDate: serverTimestamp() as any
+      UpdateDate: new Date() as any
     });
   } catch (error) {
     console.error('Error deleting word entry:', error);
@@ -159,17 +159,17 @@ export async function updateWordEntryByIndex(
     updatedWords[wordIndex] = {
       ...updatedWords[wordIndex],
       ...updates,
-      UpdateDate: serverTimestamp()
+      UpdateDate: new Date()
     };
     
     await updateDoc(docRef, {
       words: updatedWords,
-      UpdateDate: serverTimestamp()
+      UpdateDate: new Date()
     });
     
     // 서버 캐시 업데이트
     const updatedEntry = { ...updatedWords[wordIndex], docId };
-    await updateCacheWord('update', updatedEntry, docId);
+    await updateCacheWord('update', updatedEntry, updatedEntry.id as string);
     
     console.log('✏️ 단어 인덱스 업데이트 완료:', wordIndex);
     return true;

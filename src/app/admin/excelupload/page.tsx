@@ -113,7 +113,7 @@ export default function ExcelUploadPage() {
         DeleteFlag: row.DeleteFlag || 'N',
       }));
       
-      await addWordEntriesToDocument('sunnya-world',wordEntries);
+      await addWordEntriesToDocument('Word',wordEntries);
       setUploadedCount(rows.length);
     } catch (e: any) {
       setError(e?.message || '업로드 중 오류가 발생했습니다.');

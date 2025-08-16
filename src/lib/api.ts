@@ -78,3 +78,20 @@ export async function updateCacheWord(action: 'add' | 'update', word: any, entry
     return false;
   }
 }
+
+export async function clearServerCache(apiKey: string): Promise<boolean> {
+  try {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { 'x-api-key': apiKey } : {})
+    };
+    const response = await fetch('/api/words/clear-cache', {
+      method: 'POST',
+      headers
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to clear server cache:', error);
+    return false;
+  }
+}
